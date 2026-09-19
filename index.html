@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบบริหารจัดการคลังสินค้า - บริษัท อินครูเอทีฟ อินโนเวชั่น จำกัด</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+
+        /* ธีมสีเขียวธรรมชาติ สบายตา */
+        body {
+            font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0; padding: 20px; color: #2C3E50; -webkit-font-smoothing: antialiased;
+            background-color: #eef7f2;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(168, 230, 207, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(220, 237, 193, 0.4) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 240, 224, 0.5) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(181, 226, 201, 0.3) 0px, transparent 50%);
+            background-attachment: fixed; background-size: cover;
+        }
+
+        h1, h2, h3 { text-align: center; color: #1E4620; font-weight: 600; }
+
+        .company-header { text-align: center; margin-bottom: 30px; }
+        .company-header img { 
+            height: 110px; border-radius: 24px; margin-bottom: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06); object-fit: contain; background: #fff;
+            transition: all 0.3s;
+        }
+        .company-header h1 { font-size: 26px; margin: 5px 0; letter-spacing: -0.5px; }
+        .company-header p { margin: 0; color: #5c7a61; font-size: 15px; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-radius: 28px; padding: 40px; max-width: 900px; margin: 0 auto;
+            box-shadow: 0 12px 35px rgba(46, 125, 50, 0.05); border: 1px solid rgba(255, 255, 255, 0.8);
+            display: none; transition: all 0.3s ease;
+        }
+        .card.active { display: block; animation: scaleIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); } 
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+        .menu-container { text-align: center; margin-bottom: 35px; max-width: 100vw; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+        .menu-bar { 
+            display: inline-flex; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8); padding: 6px; border-radius: 99px; gap: 4px; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.04);
+        }
+        .btn-menu {
+            background: transparent; color: #5c7a61; border: none; padding: 12px 24px; font-size: 16px;
+            border-radius: 99px; cursor: pointer; transition: all 0.3s ease; font-family: 'Prompt', sans-serif; font-weight: 500; white-space: nowrap;
+        }
+        .btn-menu:hover { color: #2E7D32; }
+        .btn-menu.active { background: #2E7D32; color: #fff; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2); font-weight: 600; }
+
+        .btn-solid-primary { background-color: #388E3C; color: white; border: none; box-shadow: 0 4px 14px rgba(56, 142, 60, 0.3); padding: 16px; border-radius: 16px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s; }
+        .btn-solid-primary:hover { background-color: #2E7D32; transform: translateY(-2px); }
+        .btn-solid-green { background-color: #4CAF50; color: white; border: none; box-shadow: 0 4px 14px rgba(76, 175, 80, 0.3); padding: 16px; border-radius: 16px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s;}
+        .btn-solid-green:hover { transform: translateY(-2px); }
+        .btn-solid-red { background-color: #E57373; color: white; border: none; box-shadow: 0 4px 14px rgba(229, 115, 115, 0.3); padding: 16px; border-radius: 16px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s;}
+        .btn-solid-red:hover { transform: translateY(-2px); }
+        .btn-solid-dark { background-color: #37474F; color: white; border: none; box-shadow: 0 4px 14px rgba(55, 71, 79, 0.3); margin-top: 25px; padding: 16px; font-size: 18px; width: 100%; border-radius: 16px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s;}
+        .btn-solid-dark:hover { transform: translateY(-2px); background-color: #263238; }
+        .btn-outline { background: transparent; border: 2px solid #81C784; color: #2E7D32; padding: 14px; border-radius: 16px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s; width: 100%; font-weight: 500; }
+        .btn-outline:hover { background: #81C784; color: white; }
+
+        label { font-weight: 500; margin-top: 15px; display: block; color: #4b6650; font-size: 15px; }
+        input, select {
+            width: 100%; padding: 16px; margin: 8px 0 20px; background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: blur(10px); border: 1px solid rgba(165, 214, 167, 0.6);
+            border-radius: 16px; font-size: 16px; font-family: 'Prompt', sans-serif; box-sizing: border-box; transition: all 0.3s; color: #2C3E50;
+        }
+        input:focus, select:focus { background: #ffffff; border-color: #4CAF50; outline: none; box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15); }
+        select:disabled { background: rgba(200, 200, 200, 0.3); cursor: not-allowed; }
+
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; font-size: 15px; min-width: 750px; }
+        th, td { padding: 16px; text-align: left; border-bottom: 1px solid rgba(76, 175, 80, 0.1); vertical-align: middle; }
+        th { color: #5c7a61; font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: rgba(255,255,255,0.6); }
+        .qty-badge { background: #4CAF50; color: #FFFFFF; padding: 6px 14px; border-radius: 99px; font-weight: 600; display: inline-block; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2); }
+        .qty-badge.out-of-stock { background: #E53935; box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2); }
+        .price-text { color: #388E3C; font-weight: 600; }
+        .item-image { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.05); background-color: #fff; }
+        .btn-edit { background: rgba(76, 175, 80, 0.1); color: #2E7D32; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Prompt'; font-weight: 500; transition: 0.2s; }
+        .btn-edit:hover { background: #4CAF50; color: white; }
+
+        .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 30px; }
+        .dash-box { 
+            padding: 20px 15px; border-radius: 24px; text-align: center; background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 24px rgba(46, 125, 50, 0.04); transition: transform 0.3s;
+        }
+        .dash-box:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(46, 125, 50, 0.08); }
+        .dash-box p { margin: 0; color: #5c7a61; font-size: 15px; font-weight: 500; }
+        .dash-box span { font-size: 34px; font-weight: 600; display: block; margin-top: 8px; letter-spacing: -0.5px; }
+        .color-main { color: #2E7D32; } .color-green { color: #66BB6A; } .color-red { color: #EF5350; } .color-purple { color: #5E35B1; }
+
+        .user-info { display: flex; justify-content: flex-end; align-items: center; max-width: 900px; margin: 0 auto 20px; padding: 0 10px; }
+        .user-name { font-weight: 500; color: #2C3E50; font-size: 15px; margin-right: 15px; }
+        .btn-logout { padding: 8px 16px; border-radius: 99px; border: 1px solid rgba(229, 115, 115, 0.5); background: rgba(255,255,255,0.7); color: #E53935; cursor: pointer; font-family: 'Prompt'; font-weight: 500; transition: 0.2s; }
+        .btn-logout:hover { background: #E53935; color: white; }
+
+        .chart-wrapper { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 35px; }
+        .chart-container { width: 100%; max-width: 320px; height: 320px; }
+        .bar-chart-container { width: 100%; height: 380px; margin-top: 25px; }
+
+        /* ไอคอน Sync หมุนๆ ตอนโหลดเบื้องหลัง */
+        #sync-status { display: none; margin-left: 10px; font-size: 14px; color: #81C784; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinning { display: inline-block; animation: spin 1s linear infinite; }
+
+        #status-text { text-align: center; color: #388E3C; font-weight: 500; height: 24px; margin-bottom: 15px; font-size: 14px; }
+
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast {
+            min-width: 250px; max-width: 300px; padding: 16px 20px; border-radius: 20px; color: #1E4620; font-size: 14px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 10px 30px rgba(46, 125, 50, 0.15); animation: slideDown 0.4s forwards; border-left: 5px solid transparent;
+        }
+        .toast-warning { border-left-color: #FFA726; } .toast-info { border-left-color: #4CAF50; } .toast-danger { border-left-color: #EF5350; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media screen and (max-width: 1024px) { .dash-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media screen and (max-width: 768px) {
+            body { padding: 10px; }
+            .card { padding: 25px 20px; border-radius: 24px; }
+            .dash-grid { grid-template-columns: 1fr; gap: 15px; margin-top: 20px; }
+            .menu-bar { justify-content: flex-start; margin: 0 5px; }
+            .user-info { flex-direction: column; align-items: flex-end; gap: 10px; margin-bottom: 15px; }
+            .user-name { margin-right: 0; }
+            #toast-container { top: 10px; right: 10px; left: 10px; align-items: center; }
+            .toast { min-width: 90%; }
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media screen and (max-width: 768px) { .form-grid { grid-template-columns: 1fr; gap: 0; } }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div class="company-header">
+        <img id="main-company-logo" src="https://drive.google.com/uc?export=view&id=1MIm9cUkWG6PfqoSbrq5DT1miQKlLStmx" alt="โลโก้องค์กร">
+        <h1>บริษัท อินครูเอทีฟ อินโนเวชั่น จำกัด</h1>
+        <p>ระบบบริหารจัดการคลังสินค้าแบบรวมศูนย์</p>
+    </div>
+
+    <!-- 🔒 เข้าสู่ระบบ -->
+    <div id="login-page" class="card active">
+        <h2>เข้าสู่ระบบพนักงาน</h2>
+        <p style="text-align: center; color: #5c7a61; font-size: 14px; margin-bottom: 25px;">กรุณาระบุข้อมูลเพื่อยืนยันตัวตนการเข้าใช้งาน</p>
+        <label>ชื่อผู้ใช้งาน (Username)</label>
+        <input type="text" id="login-user" placeholder="ระบุชื่อผู้ใช้งาน">
+        <label>รหัสผ่าน (Password)</label>
+        <input type="password" id="login-pass" placeholder="ระบุรหัสผ่าน">
+        <button class="btn-solid-primary" style="width: 100%; font-size: 18px; margin-top: 15px;" onclick="login()">เข้าสู่ระบบ</button>
+        <div id="login-status" style="text-align: center; margin-top: 20px; font-size: 14px; font-weight: 500;"></div>
+    </div>
+
+    <!-- 📦 หน้าจอหลัก -->
+    <div id="app-container" style="display: none;">
+
+        <div class="user-info">
+            <span class="user-name">
+                ผู้ดูแลระบบ: <span id="current-user" style="color: #2E7D32; font-weight:600;">-</span>
+                <span id="sync-status" title="ระบบกำลังซิงค์ข้อมูล..."><span class="spinning">🔄</span></span>
+            </span>
+            <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+        </div>
+
+        <div id="status-text"></div> 
+
+        <div class="menu-container">
+            <div class="menu-bar">
+                <button class="btn-menu active" onclick="showPage('dashboard', this)">📊 แดชบอร์ด</button>
+                <button class="btn-menu" onclick="showPage('daily-summary', this)">📈 สรุปรายวัน</button>
+                <button class="btn-menu" onclick="showPage('receive', this)">📥 รับสินค้า</button>
+                <button class="btn-menu" onclick="showPage('issue', this)">📤 เบิกสินค้า</button>
+                <button class="btn-menu" onclick="showPage('stock', this)">📦 คลังสินค้า</button>
+                <button class="btn-menu" onclick="showPage('settings', this)">⚙️ ตั้งค่า</button>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="card active">
+            <h2>ภาพรวมคลังสินค้า</h2>
+            <div class="dash-grid">
+                <div class="dash-box"><p>สินค้าคงเหลือรวม</p><span class="color-main" id="dash-total">0</span></div>
+                <div class="dash-box"><p>รับเข้า (วันนี้)</p><span class="color-green" id="dash-in">0</span></div>
+                <div class="dash-box"><p>เบิกออก (วันนี้)</p><span class="color-red" id="dash-out">0</span></div>
+                <div class="dash-box"><p>มูลค่าคลังสินค้า (฿)</p><span class="color-purple" id="dash-value">0</span></div>
+            </div>
+            <div class="chart-wrapper"><div class="chart-container"><canvas id="stockDoughnutChart"></canvas></div></div>
+            <button class="btn-solid-dark" onclick="closeDay()">ปิดยอดประจำวัน</button>
+        </div>
+
+        <!-- Daily Summary -->
+        <div id="daily-summary" class="card">
+            <h2>สรุปความเคลื่อนไหวประจำวัน</h2>
+            <p style="text-align: center; color: #5c7a61;">กราฟแสดงสถิติการรับเข้าและเบิกออกของวันนี้แบบละเอียด</p>
+            <div class="bar-chart-container"><canvas id="dailyBarChart"></canvas></div>
+        </div>
+
+        <!-- Receive -->
+        <div id="receive" class="card">
+            <h2>บันทึกรับสินค้าเข้าคลัง</h2>
+            <div class="form-grid">
+                <div><label>ชื่อสินค้า <span style="color:red;">*</span></label><input type="text" id="in-name" placeholder="ตัวอย่าง: สมุดบันทึก"></div>
+                <div><label>หมายเลขล็อต <span style="color:red;">*</span></label><input type="text" id="in-lot" placeholder="ตัวอย่าง: L-001"></div>
+            </div>
+            <div class="form-grid">
+                <!-- แก้ให้ placeholder เข้าใจง่ายว่าใส่ 0 ได้ -->
+                <div><label>จำนวน (ชิ้น) <span style="color:red;">*</span></label><input type="number" id="in-qty" placeholder="ระบุจำนวนตัวเลข (ใส่ 0 ได้)"></div>
+                <div><label>ราคาต่อชิ้น (บาท)</label><input type="number" id="in-price" placeholder="หากไม่ระบุจะเท่ากับ 0"></div>
+            </div>
+            <label>ลิงก์รูปภาพสินค้า (URL)</label>
+            <input type="text" id="in-image" placeholder="วางลิงก์รูปภาพ (เช่น https://...)">
+            <button class="btn-solid-green" style="width: 100%; font-size: 18px; margin-top:10px;" onclick="receiveItem()">ยืนยันการรับสินค้า</button>
+        </div>
+
+        <!-- Issue -->
+        <div id="issue" class="card">
+            <h2>บันทึกเบิกสินค้าออก</h2>
+            <label>เลือกรายการสินค้า</label>
+            <select id="out-item"><option>กำลังโหลดข้อมูล...</option></select> 
+            <label>จำนวนที่ต้องการเบิก</label>
+            <input type="number" id="out-qty" placeholder="ระบุจำนวนตัวเลข">
+            <button class="btn-solid-red" style="width: 100%; font-size: 18px; margin-top:15px;" onclick="issueItem()">ยืนยันการเบิกสินค้า</button>
+        </div>
+
+        <!-- Stock -->
+        <div id="stock" class="card">
+            <h2>รายงานสินค้าคงเหลือ</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 70px; text-align: center;">รูปภาพ</th>
+                            <th>รายการสินค้า</th>
+                            <th>หมายเลขล็อต</th>
+                            <th>ราคา(฿)</th>
+                            <th style="text-align: center;">คงเหลือ</th>
+                            <th style="text-align: center;">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ⚙️ หน้าต่างตั้งค่าระบบ -->
+        <div id="settings" class="card">
+            <h2>การตั้งค่าระบบ</h2>
+            <p style="text-align: center; color: #5c7a61; font-size: 14px;">จัดการสัญลักษณ์และข้อมูลองค์กร</p>
+            <label>อัปเดตสัญลักษณ์องค์กร (URL โลโก้)</label>
+            <input type="text" id="setting-logo-url" placeholder="วางลิงก์รูปภาพโลโก้ที่นี่">
+            <p style="text-align: center; font-size: 14px; font-weight: 500; color: #8E8E93; margin-top: 10px;">ภาพตัวอย่างโลโก้ปัจจุบัน</p>
+            <img id="setting-logo-preview" src="" style="max-width: 200px; max-height: 120px; border-radius: 16px; display: block; margin: 0 auto 25px auto; object-fit: contain; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.05);" onerror="this.style.display='none'">
+            <button class="btn-solid-primary" onclick="saveLogoSetting()">บันทึกการตั้งค่า</button>
+        </div>
+
+        <!-- หน้าต่างแก้ไขข้อมูลสินค้า -->
+        <div id="edit-item-page" class="card">
+            <h2>แก้ไขข้อมูลสินค้า</h2>
+            <p style="text-align: center; color: #FFA726; font-size: 14px;">โปรดตรวจสอบข้อมูลให้ถูกต้องก่อนบันทึก</p>
+            <div class="form-grid">
+                <div><label>ชื่อสินค้า</label><input type="text" id="edit-name"></div>
+                <div><label>หมายเลขล็อต</label><input type="text" id="edit-lot"></div>
+            </div>
+            <div class="form-grid">
+                <div><label>จำนวนคงเหลือ (ชิ้น)</label><input type="number" id="edit-qty"></div>
+                <div><label>ราคาต่อชิ้น (บาท)</label><input type="number" id="edit-price"></div>
+            </div>
+            <label>ลิงก์รูปภาพใหม่ (URL)</label>
+            <input type="text" id="edit-image" placeholder="วางลิงก์รูปภาพ (หากมี)">
+            <div class="form-grid" style="margin-top: 25px;">
+                <button class="btn-outline" onclick="showPage('stock', document.querySelectorAll('.btn-menu')[4])">ยกเลิก</button>
+                <button class="btn-solid-primary" onclick="saveEditItem()">บันทึกการแก้ไข</button>
+            </div>
+        </div>
+
+        <!-- Closing Summary -->
+        <div id="closing-summary" class="card">
+            <h2 style="color: #388E3C; margin-bottom: 25px;">ดำเนินการปิดยอดสำเร็จ</h2>
+            <div style="background: rgba(255,255,255,0.8); padding: 25px; border-radius: 20px; margin-bottom: 30px; font-size: 16px; line-height: 2; border: 1px solid rgba(165, 214, 167, 0.6);">
+                <strong style="font-size: 18px; color:#1E4620;">สรุปข้อมูลประจำวัน:</strong><br>
+                <span style="color:#5c7a61;">ยอดรับเข้าวันนี้:</span> <span id="summary-in" style="font-weight:600; color:#4CAF50; float:right;">0 ชิ้น</span><br>
+                <span style="color:#5c7a61;">ยอดเบิกออกวันนี้:</span> <span id="summary-out" style="font-weight:600; color:#E57373; float:right;">0 ชิ้น</span><br>
+                <hr style="border: 0; border-top: 1px solid rgba(76,175,80,0.2); margin: 15px 0;">
+                <span style="color:#1E4620; font-weight: 500;">สินค้าคงเหลือในคลังรวม:</span> <span id="summary-stock" style="font-weight:600; color:#388E3C; float:right;">0 ชิ้น</span><br>
+                <span style="color:#5c7a61; font-size: 14px;">ผู้ดำเนินการประมวลผล: <span id="summary-user"></span></span>
+            </div>
+            <button class="btn-solid-primary" style="width: 100%;" onclick="showPage('dashboard', document.querySelector('.btn-menu'))">กลับสู่แผงควบคุมหลัก</button>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWn0gBQv8xw0IqXG5zwZ82FM7U2fKn4pgmS4XuetK1eMO9DKPCBinOk2hWKRJGo5qCkw/exec';
+
+        let inventory = []; 
+        let todayLogs = [];
+        let totalIn = 0, totalOut = 0;
+        let loggedInUser = ""; 
+        let doughnutChart = null; 
+        let barChart = null;
+        let currentCompanyLogo = ""; 
+        let currentEditOldName = "";
+        let currentEditOldLot = "";
+        
+        let syncInterval; // ตัวแปรเก็บเวลาซิงค์อัตโนมัติ
+        let isSyncing = false; 
+
+        Chart.defaults.font.family = "'Prompt', sans-serif";
+        Chart.defaults.color = '#5c7a61';
+
+        window.onload = async function() {
+            try {
+                let res = await fetch(SCRIPT_URL + "?action=getLogo");
+                let data = await res.json();
+                if (data.logo) {
+                    let formattedLogo = formatImageUrl(data.logo);
+                    document.getElementById('main-company-logo').src = formattedLogo;
+                    document.getElementById('setting-logo-preview').src = formattedLogo;
+                    document.getElementById('setting-logo-preview').style.display = 'block';
+                    document.getElementById('setting-logo-url').value = data.logo;
+                }
+            } catch(e) {}
+        };
+
+        function showNotification(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            container.innerHTML = ''; 
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<strong style="color:#1E4620; font-size: 15px;">${title}</strong><br><span style="color:#5c7a61; font-size: 14px;">${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => { 
+                if (container.contains(toast)) toast.remove(); 
+            }, 4000);
+        }
+
+        function checkLowStockAlerts() {
+            // ไม่ให้โชว์แจ้งเตือนซ้ำๆ รกจอ
+            let lowStockItems = inventory.filter(item => item.qty <= 10 && item.qty > 0);
+            if (lowStockItems.length > 0) {
+                let msg = lowStockItems.map(i => `${i.name} (เหลือ ${i.qty})`).join(', ');
+                showNotification('แจ้งเตือน: สินค้าใกล้หมด', msg, 'warning');
+            }
+        }
+
+        async function login() {
+            let user = document.getElementById('login-user').value;
+            let pass = document.getElementById('login-pass').value;
+            let statusDiv = document.getElementById('login-status');
+
+            if(!user || !pass) { statusDiv.innerText = "กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน"; statusDiv.style.color = "#E53935"; return; }
+            statusDiv.innerText = "กำลังตรวจสอบข้อมูลในระบบ..."; statusDiv.style.color = "#5c7a61";
+
+            try {
+                let url = `${SCRIPT_URL}?action=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
+                let response = await fetch(url);
+                let result = await response.json();
+
+                if(result.status === 'success') {
+                    loggedInUser = result.name; 
+                    document.getElementById('current-user').innerText = loggedInUser;
+                    document.getElementById('login-page').classList.remove('active');
+                    document.getElementById('app-container').style.display = "block";
+
+                    document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
+                    document.querySelector('.btn-menu').classList.add('active');
+                    showPage('dashboard');
+
+                    await fetchStockData(); 
+                    
+                    // เริ่มระบบซิงค์อัตโนมัติทุกๆ 8 วินาที (ไม่หน่วงเครื่อง)
+                    if(syncInterval) clearInterval(syncInterval);
+                    syncInterval = setInterval(silentSyncData, 8000);
+
+                } else {
+                    statusDiv.innerText = "ข้อมูลชื่อผู้ใช้งาน หรือ รหัสผ่านไม่ถูกต้อง"; statusDiv.style.color = "#E53935";
+                }
+            } catch (error) { statusDiv.innerText = "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์"; statusDiv.style.color = "#E53935"; }
+        }
+
+        function logout() {
+            loggedInUser = "";
+            document.getElementById('login-user').value = ""; document.getElementById('login-pass').value = "";
+            document.getElementById('login-status').innerText = "";
+            document.getElementById('app-container').style.display = "none";
+            document.getElementById('login-page').classList.add('active');
+            if(syncInterval) clearInterval(syncInterval); // ปิดซิงค์ตอนล็อคเอาท์
+        }
+
+        async function fetchStockData() {
+            document.getElementById('status-text').innerText = "กำลังอัปเดตข้อมูลจากฐานข้อมูล...";
+            try {
+                let response = await fetch(SCRIPT_URL + "?action=get");
+                let data = await response.json();
+
+                inventory = data.stock; todayLogs = data.logs || [];
+                totalIn = data.in; totalOut = data.out;
+
+                updateDashboard(); updateStockTable(); updateIssueDropdown(); updateDailyBarChart(); checkLowStockAlerts();
+                document.getElementById('status-text').innerText = "";
+            } catch (error) {
+                document.getElementById('status-text').innerText = "ขัดข้อง: ไม่สามารถเชื่อมต่อฐานข้อมูลได้";
+                document.getElementById('status-text').style.color = "#E53935";
+            }
+        }
+
+        // ==========================================
+        // ฟังก์ชันซิงค์ข้อมูลเงียบๆ (Silent Sync) 
+        // ==========================================
+        async function silentSyncData() {
+            if(isSyncing) return;
+            isSyncing = true;
+            document.getElementById('sync-status').style.display = "inline-block"; // โชว์ไอคอนหมุนๆ ว่ากำลังซิงค์
+
+            try {
+                let response = await fetch(SCRIPT_URL + "?action=get");
+                let data = await response.json();
+                
+                // ตรวจสอบว่ามีการเปลี่ยนแปลงหรือไม่
+                let newDataStr = JSON.stringify(data.stock) + JSON.stringify(data.logs);
+                let oldDataStr = JSON.stringify(inventory) + JSON.stringify(todayLogs);
+
+                if(newDataStr !== oldDataStr) {
+                    inventory = data.stock; todayLogs = data.logs || [];
+                    totalIn = data.in; totalOut = data.out;
+
+                    // ถ้ามึงกำลังพิมพ์หน้าแก้ไขอยู่ กูจะไม่รีเฟรชตารางขัดจังหวะมึง
+                    let isEditing = document.getElementById('edit-item-page').classList.contains('active');
+                    if(!isEditing) {
+                        updateDashboard(); updateStockTable(); updateIssueDropdown(); updateDailyBarChart();
+                    }
+                }
+            } catch(e) { console.log("Sync failed:", e); }
+            
+            document.getElementById('sync-status').style.display = "none";
+            isSyncing = false;
+        }
+
+        async function saveLogoSetting() {
+            let newLogoUrl = document.getElementById('setting-logo-url').value;
+            document.getElementById('status-text').innerText = "กำลังบันทึกการตั้งค่าองค์กร...";
+            let payload = { action: 'updateLogo', logo: newLogoUrl, user: loggedInUser };
+            try {
+                let response = await fetch(SCRIPT_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                let result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('บันทึกสำเร็จ', 'อัปเดตสัญลักษณ์องค์กรเรียบร้อยแล้ว', 'info');
+                    let formattedLogo = formatImageUrl(newLogoUrl);
+                    document.getElementById('main-company-logo').src = formattedLogo;
+                    document.getElementById('setting-logo-preview').src = formattedLogo;
+                    document.getElementById('setting-logo-preview').style.display = 'block';
+                    document.getElementById('status-text').innerText = "";
+                }
+            } catch (error) { showNotification("ข้อผิดพลาด", "ไม่สามารถบันทึกการตั้งค่าได้", "danger"); }
+        }
+
+        function showPage(pageId, btnElement) {
+            document.querySelectorAll('#app-container .card').forEach(card => card.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if (btnElement) {
+                document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+            if (pageId === 'issue') updateIssueDropdown();
+        }
+
+        function formatImageUrl(url) {
+            if (!url) return "";
+            let cleanUrl = String(url).trim();
+            let fileId = "";
+            let match = cleanUrl.match(/[-\w]{25,}/);
+            if (match && cleanUrl.includes('drive.google.com')) { fileId = match[0]; }
+            if (fileId) { return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; }
+            return cleanUrl;
+        }
+
+        async function receiveItem() {
+            const name = document.getElementById('in-name').value;
+            const lot = document.getElementById('in-lot').value;
+            const qty = parseInt(document.getElementById('in-qty').value);
+            const price = parseFloat(document.getElementById('in-price').value) || 0;
+            let imageStr = document.getElementById('in-image').value;
+
+            // กูแก้ให้รับค่า 0 ได้แล้วนะ (เปลี่ยนจาก <= 0 เป็น < 0)
+            if (!name || !lot || isNaN(qty) || qty < 0) { 
+                showNotification("ข้อผิดพลาด", "กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ถูกต้อง (จำนวนใส่ 0 ได้)", "danger"); return; 
+            }
+
+            document.getElementById('status-text').innerText = "กำลังส่งข้อมูลไปยังฐานข้อมูล...";
+            let payload = { action: 'receive', name: name, lot: lot, qty: qty, price: price, user: loggedInUser, image: imageStr };
+
+            try {
+                let response = await fetch(SCRIPT_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                let result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('บันทึกสำเร็จ', `เพิ่มรายการ ${name} เข้าสู่ระบบแล้ว`, 'info');
+                    document.getElementById('in-name').value = ''; document.getElementById('in-lot').value = '';
+                    document.getElementById('in-qty').value = ''; document.getElementById('in-price').value = '';
+                    document.getElementById('in-image').value = '';
+                    fetchStockData(); 
+                }
+            } catch (error) { showNotification("ข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้", "danger"); }
+        }
+
+        function updateIssueDropdown() {
+            const select = document.getElementById('out-item');
+            select.innerHTML = '<option value="">-- โปรดเลือกรายการสินค้า --</option>';
+            inventory.forEach((item, index) => {
+                // ถ้าของเป็น 0 ให้มันโชว์สถานะสินค้าหมดเลย แต่กดเบิกไม่ได้
+                if (item.qty > 0) { 
+                    select.innerHTML += `<option value="${index}">[ล็อต: ${item.lot}] ${item.name} (คงเหลือ ${item.qty})</option>`; 
+                } else {
+                    select.innerHTML += `<option value="${index}" disabled style="color:#E53935;">[ล็อต: ${item.lot}] ${item.name} (❌ สินค้าหมด)</option>`; 
+                }
+            });
+        }
+
+        async function issueItem() {
+            const index = document.getElementById('out-item').value;
+            const issueQty = parseInt(document.getElementById('out-qty').value);
+
+            if (index === "" || isNaN(issueQty) || issueQty <= 0) { showNotification("ข้อผิดพลาด", "กรุณาเลือกรายการและระบุจำนวนให้ถูกต้อง", "danger"); return; }
+
+            let item = inventory[index];
+            if (issueQty > item.qty) { showNotification("ข้อผิดพลาด", "จำนวนสินค้าในคลังไม่เพียงพอต่อการเบิก", "danger"); return; }
+
+            document.getElementById('status-text').innerText = "กำลังบันทึกรายการเบิกออก...";
+            let payload = { action: 'issue', name: item.name, lot: item.lot, qty: issueQty, user: loggedInUser };
+
+            try {
+                let response = await fetch(SCRIPT_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                let result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('เบิกสินค้าสำเร็จ', `ทำรายการเบิก ${item.name} จำนวน ${issueQty} ชิ้นเรียบร้อย`, 'info');
+                    document.getElementById('out-qty').value = ''; fetchStockData(); 
+                } else { showNotification("ข้อผิดพลาด", "สินค้าไม่เพียงพอ", "danger"); }
+            } catch (error) { showNotification("ข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้", "danger"); }
+        }
+
+        function openEditItem(index) {
+            let item = inventory[index];
+            currentEditOldName = item.name; currentEditOldLot = item.lot;
+
+            document.getElementById('edit-name').value = item.name;
+            document.getElementById('edit-lot').value = item.lot;
+            document.getElementById('edit-qty').value = item.qty;
+            document.getElementById('edit-price').value = item.price || 0;
+            document.getElementById('edit-image').value = item.image || '';
+
+            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
+            showPage('edit-item-page', null);
+        }
+
+        async function saveEditItem() {
+            let newName = document.getElementById('edit-name').value;
+            let newLot = document.getElementById('edit-lot').value;
+            let newQty = parseInt(document.getElementById('edit-qty').value);
+            let newPrice = parseFloat(document.getElementById('edit-price').value) || 0;
+            let imageStr = document.getElementById('edit-image').value;
+
+            // แก้ให้ใส่จำนวนเป็น 0 ได้
+            if(!newName || !newLot || isNaN(newQty) || newQty < 0) { showNotification("ข้อผิดพลาด", "กรุณากรอกข้อมูลให้ครบและถูกต้อง", "danger"); return; }
+
+            document.getElementById('status-text').innerText = "กำลังประมวลผลอัปเดตข้อมูล...";
+            let payload = { action: 'edit', oldName: currentEditOldName, oldLot: currentEditOldLot, newName: newName, newLot: newLot, newQty: newQty, newPrice: newPrice, image: imageStr, user: loggedInUser };
+
+            try {
+                let response = await fetch(SCRIPT_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                let result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('แก้ไขสำเร็จ', `อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว`, 'info');
+                    showPage('stock', document.querySelectorAll('.btn-menu')[4]);
+                    fetchStockData(); 
+                } else { showNotification("ข้อผิดพลาด", "ไม่พบรายการที่ต้องการแก้ไข", "danger"); document.getElementById('status-text').innerText = ""; }
+            } catch (error) { showNotification("ข้อผิดพลาดในการเชื่อมต่อ", "เกิดปัญหาขณะส่งข้อมูล", "danger"); document.getElementById('status-text').innerText = ""; }
+        }
+
+        function updateStockTable() {
+            const tbody = document.getElementById('stock-table');
+            tbody.innerHTML = ''; 
+            inventory.forEach((item, index) => {
+                let imgUrl = formatImageUrl(item.image);
+                let imgHtml = imgUrl ? 
+                    `<img src="${imgUrl}" class="item-image" alt="สินค้า" onerror="this.outerHTML='<div style=\\'font-size:30px; text-align:center; line-height:60px;\\'>📦</div>'">` : 
+                    `<div style="font-size:30px; text-align:center; line-height:60px;">📦</div>`;
+
+                // โชว์ป้าย "สินค้าหมด" ถ้ามันเท่ากับ 0 ชิ้น 
+                let qtyHtml = item.qty > 0 
+                    ? `<span class="qty-badge">${item.qty.toLocaleString()}</span>`
+                    : `<span class="qty-badge out-of-stock">สินค้าหมด</span>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center; padding: 10px;">${imgHtml}</td>
+                        <td><strong>${item.name}</strong></td>
+                        <td>${item.lot}</td>
+                        <td class="price-text">${item.price.toLocaleString()}</td>
+                        <td style="text-align:center;">${qtyHtml}</td>
+                        <td style="text-align:center;"><button class="btn-edit" onclick="openEditItem(${index})">แก้ไข</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateDashboard() {
+            let totalStock = 0, totalValue = 0;
+            inventory.forEach(item => { totalStock += item.qty; totalValue += (item.qty * item.price); });
+
+            document.getElementById('dash-total').innerText = totalStock.toLocaleString();
+            document.getElementById('dash-in').innerText = totalIn.toLocaleString();
+            document.getElementById('dash-out').innerText = totalOut.toLocaleString();
+            document.getElementById('dash-value').innerText = totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            let ctx = document.getElementById('stockDoughnutChart').getContext('2d');
+            if(doughnutChart != null) doughnutChart.destroy(); 
+
+            doughnutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['คงเหลือรวม', 'รับเข้า (วันนี้)', 'เบิกออก (วันนี้)'],
+                    datasets: [{ data: [totalStock, totalIn, totalOut], backgroundColor: ['#388E3C', '#66BB6A', '#EF5350'], borderWidth: 0, hoverOffset: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } }
+            });
+        }
+
+        function updateDailyBarChart() {
+            let itemSummary = {};
+            todayLogs.forEach(log => {
+                if(!itemSummary[log.name]) itemSummary[log.name] = { in: 0, out: 0 };
+                if(log.type === 'IN') itemSummary[log.name].in += log.qty;
+                if(log.type === 'OUT') itemSummary[log.name].out += log.qty;
+            });
+
+            let labels = Object.keys(itemSummary);
+            let inData = labels.map(label => itemSummary[label].in);
+            let outData = labels.map(label => itemSummary[label].out);
+
+            let ctx = document.getElementById('dailyBarChart').getContext('2d');
+            if(barChart != null) barChart.destroy();
+
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['ยังไม่มีรายการ'],
+                    datasets: [
+                        { label: 'รับเข้า', data: inData, backgroundColor: '#66BB6A', borderRadius: 8 },
+                        { label: 'เบิกออก', data: outData, backgroundColor: '#EF5350', borderRadius: 8 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { usePointStyle: true } } },
+                    scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: 'rgba(0,0,0,0.05)' }, border: { display: false } }, x: { grid: { display: false }, border: { display: false } } }
+                }
+            });
+        }
+
+        async function closeDay() {
+            let confirmClose = confirm("การยืนยัน: คุณต้องการปิดยอดประจำวันใช่หรือไม่?\n\nระบบจะทำการบันทึกยอดรวมเข้าประวัติการทำงาน และทำการรีเซ็ตตัวเลขความเคลื่อนไหวประจำวัน\n(หมายเหตุ: จำนวนสินค้าคงเหลือในคลังจะไม่ได้รับผลกระทบ)");
+            if(confirmClose) {
+                document.getElementById('status-text').innerText = "กำลังประมวลผลการปิดยอด กรุณารอสักครู่...";
+                let payload = { action: 'closeday', user: loggedInUser };
+                try {
+                    let response = await fetch(SCRIPT_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                    let result = await response.json();
+                    if(result.status === 'success') {
+                        let sum = result.summary;
+                        document.getElementById('summary-in').innerText = sum.in.toLocaleString() + " ชิ้น";
+                        document.getElementById('summary-out').innerText = sum.out.toLocaleString() + " ชิ้น";
+                        document.getElementById('summary-stock').innerText = sum.stock.toLocaleString() + " ชิ้น";
+                        document.getElementById('summary-user').innerText = loggedInUser;
+
+                        showPage('closing-summary', null); fetchStockData(); 
+                    }
+                } catch (error) { showNotification("ข้อผิดพลาด", "ไม่สามารถประมวลผลการปิดยอดได้", "danger"); }
+            }
+        }
+    </script>
+</body>
+</html>
