@@ -102,11 +102,12 @@
         .btn-logout { padding: 8px 16px; border-radius: 99px; border: 1px solid rgba(229, 115, 115, 0.5); background: rgba(255,255,255,0.7); color: #E53935; cursor: pointer; font-family: 'Prompt'; font-weight: 500; transition: 0.2s; }
         .btn-logout:hover { background: #E53935; color: white; }
 
-        .chart-wrapper { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 35px; }
+        .chart-wrapper { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 25px; }
         .chart-container { width: 100%; max-width: 320px; height: 320px; }
-        .bar-chart-container { width: 100%; height: 380px; margin-top: 25px; }
+        
+        .bar-chart-container { width: 100%; height: 350px; margin-top: 20px; }
+        .stock-chart-container { width: 100%; height: 350px; margin-top: 10px; background: rgba(255,255,255,0.4); border-radius: 20px; padding: 15px; box-sizing: border-box; }
 
-        /* ไอคอน Sync หมุนๆ ตอนโหลดเบื้องหลัง */
         #sync-status { display: none; margin-left: 10px; font-size: 14px; color: #81C784; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spinning { display: inline-block; animation: spin 1s linear infinite; }
@@ -192,7 +193,19 @@
                 <div class="dash-box"><p>เบิกออก (วันนี้)</p><span class="color-red" id="dash-out">0</span></div>
                 <div class="dash-box"><p>มูลค่าคลังสินค้า (฿)</p><span class="color-purple" id="dash-value">0</span></div>
             </div>
-            <div class="chart-wrapper"><div class="chart-container"><canvas id="stockDoughnutChart"></canvas></div></div>
+            
+            <div class="chart-wrapper">
+                <div class="chart-container"><canvas id="stockDoughnutChart"></canvas></div>
+            </div>
+
+            <div style="margin-top: 35px; border-top: 1px dashed #a5d6a7; padding-top: 25px;">
+                <h3 style="color: #2E7D32; font-size: 18px; margin-bottom: 5px;">สถิติสินค้าคงเหลือแยกตามรายการ</h3>
+                <p style="text-align: center; color: #5c7a61; font-size: 13px; margin-top:0;">(อัปเดตอัตโนมัติตามข้อมูลใน Google Sheets)</p>
+                <div class="stock-chart-container">
+                    <canvas id="allStockBarChart"></canvas>
+                </div>
+            </div>
+
             <button class="btn-solid-dark" onclick="closeDay()">ปิดยอดประจำวัน</button>
         </div>
 
@@ -211,7 +224,6 @@
                 <div><label>หมายเลขล็อต <span style="color:red;">*</span></label><input type="text" id="in-lot" placeholder="ตัวอย่าง: L-001"></div>
             </div>
             <div class="form-grid">
-                <!-- แก้ให้ placeholder เข้าใจง่ายว่าใส่ 0 ได้ -->
                 <div><label>จำนวน (ชิ้น) <span style="color:red;">*</span></label><input type="number" id="in-qty" placeholder="ระบุจำนวนตัวเลข (ใส่ 0 ได้)"></div>
                 <div><label>ราคาต่อชิ้น (บาท)</label><input type="number" id="in-price" placeholder="หากไม่ระบุจะเท่ากับ 0"></div>
             </div>
@@ -230,9 +242,20 @@
             <button class="btn-solid-red" style="width: 100%; font-size: 18px; margin-top:15px;" onclick="issueItem()">ยืนยันการเบิกสินค้า</button>
         </div>
 
-        <!-- Stock -->
+        <!-- Stock (เพิ่มระบบค้นหาและดาวน์โหลด CSV) -->
         <div id="stock" class="card">
             <h2>รายงานสินค้าคงเหลือ</h2>
+            
+            <div class="form-grid" style="margin-bottom: 5px; align-items: end;">
+                <div>
+                    <label style="margin-top: 0;">ค้นหาสินค้า</label>
+                    <input type="text" id="search-stock" placeholder="🔍 พิมพ์ชื่อสินค้า หรือ ล็อต..." onkeyup="filterStock()" style="margin-bottom: 0;">
+                </div>
+                <div>
+                    <button class="btn-solid-green" style="width: 100%; padding: 16px; margin-bottom: 0;" onclick="exportStockCSV()">📥 ดาวน์โหลดรายงาน (CSV)</button>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -297,6 +320,7 @@
     </div>
 
     <script>
+        // ลิงก์ Apps Script ของมึง
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWn0gBQv8xw0IqXG5zwZ82FM7U2fKn4pgmS4XuetK1eMO9DKPCBinOk2hWKRJGo5qCkw/exec';
 
         let inventory = []; 
@@ -305,11 +329,11 @@
         let loggedInUser = ""; 
         let doughnutChart = null; 
         let barChart = null;
-        let currentCompanyLogo = ""; 
+        let allStockChart = null; 
         let currentEditOldName = "";
         let currentEditOldLot = "";
         
-        let syncInterval; // ตัวแปรเก็บเวลาซิงค์อัตโนมัติ
+        let syncInterval; 
         let isSyncing = false; 
 
         Chart.defaults.font.family = "'Prompt', sans-serif";
@@ -344,7 +368,6 @@
         }
 
         function checkLowStockAlerts() {
-            // ไม่ให้โชว์แจ้งเตือนซ้ำๆ รกจอ
             let lowStockItems = inventory.filter(item => item.qty <= 10 && item.qty > 0);
             if (lowStockItems.length > 0) {
                 let msg = lowStockItems.map(i => `${i.name} (เหลือ ${i.qty})`).join(', ');
@@ -352,6 +375,7 @@
             }
         }
 
+        // แก้ไข: ใช้ POST request เพื่อความปลอดภัย
         async function login() {
             let user = document.getElementById('login-user').value;
             let pass = document.getElementById('login-pass').value;
@@ -360,9 +384,15 @@
             if(!user || !pass) { statusDiv.innerText = "กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน"; statusDiv.style.color = "#E53935"; return; }
             statusDiv.innerText = "กำลังตรวจสอบข้อมูลในระบบ..."; statusDiv.style.color = "#5c7a61";
 
+            let payload = { action: 'login', user: user, pass: pass };
+
             try {
-                let url = `${SCRIPT_URL}?action=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
-                let response = await fetch(url);
+                let response = await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    redirect: 'follow', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                    body: JSON.stringify(payload) 
+                });
                 let result = await response.json();
 
                 if(result.status === 'success') {
@@ -377,7 +407,6 @@
 
                     await fetchStockData(); 
                     
-                    // เริ่มระบบซิงค์อัตโนมัติทุกๆ 8 วินาที (ไม่หน่วงเครื่อง)
                     if(syncInterval) clearInterval(syncInterval);
                     syncInterval = setInterval(silentSyncData, 8000);
 
@@ -393,7 +422,7 @@
             document.getElementById('login-status').innerText = "";
             document.getElementById('app-container').style.display = "none";
             document.getElementById('login-page').classList.add('active');
-            if(syncInterval) clearInterval(syncInterval); // ปิดซิงค์ตอนล็อคเอาท์
+            if(syncInterval) clearInterval(syncInterval);
         }
 
         async function fetchStockData() {
@@ -413,19 +442,15 @@
             }
         }
 
-        // ==========================================
-        // ฟังก์ชันซิงค์ข้อมูลเงียบๆ (Silent Sync) 
-        // ==========================================
         async function silentSyncData() {
             if(isSyncing) return;
             isSyncing = true;
-            document.getElementById('sync-status').style.display = "inline-block"; // โชว์ไอคอนหมุนๆ ว่ากำลังซิงค์
+            document.getElementById('sync-status').style.display = "inline-block"; 
 
             try {
                 let response = await fetch(SCRIPT_URL + "?action=get");
                 let data = await response.json();
                 
-                // ตรวจสอบว่ามีการเปลี่ยนแปลงหรือไม่
                 let newDataStr = JSON.stringify(data.stock) + JSON.stringify(data.logs);
                 let oldDataStr = JSON.stringify(inventory) + JSON.stringify(todayLogs);
 
@@ -433,7 +458,6 @@
                     inventory = data.stock; todayLogs = data.logs || [];
                     totalIn = data.in; totalOut = data.out;
 
-                    // ถ้ามึงกำลังพิมพ์หน้าแก้ไขอยู่ กูจะไม่รีเฟรชตารางขัดจังหวะมึง
                     let isEditing = document.getElementById('edit-item-page').classList.contains('active');
                     if(!isEditing) {
                         updateDashboard(); updateStockTable(); updateIssueDropdown(); updateDailyBarChart();
@@ -471,26 +495,27 @@
                 btnElement.classList.add('active');
             }
             if (pageId === 'issue') updateIssueDropdown();
+            if (pageId === 'stock') {
+                document.getElementById('search-stock').value = ""; // เคลียร์ช่องค้นหาเมื่อเปิดหน้าใหม่
+                filterStock(); 
+            }
         }
 
         function formatImageUrl(url) {
             if (!url) return "";
             let cleanUrl = String(url).trim();
-            let fileId = "";
             let match = cleanUrl.match(/[-\w]{25,}/);
-            if (match && cleanUrl.includes('drive.google.com')) { fileId = match[0]; }
-            if (fileId) { return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; }
+            if (match && cleanUrl.includes('drive.google.com')) { return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w800`; }
             return cleanUrl;
         }
 
         async function receiveItem() {
             const name = document.getElementById('in-name').value;
             const lot = document.getElementById('in-lot').value;
-            const qty = parseInt(document.getElementById('in-qty').value);
+            const qty = parseInt(document.getElementById('in-qty').value, 10);
             const price = parseFloat(document.getElementById('in-price').value) || 0;
             let imageStr = document.getElementById('in-image').value;
 
-            // กูแก้ให้รับค่า 0 ได้แล้วนะ (เปลี่ยนจาก <= 0 เป็น < 0)
             if (!name || !lot || isNaN(qty) || qty < 0) { 
                 showNotification("ข้อผิดพลาด", "กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ถูกต้อง (จำนวนใส่ 0 ได้)", "danger"); return; 
             }
@@ -515,7 +540,6 @@
             const select = document.getElementById('out-item');
             select.innerHTML = '<option value="">-- โปรดเลือกรายการสินค้า --</option>';
             inventory.forEach((item, index) => {
-                // ถ้าของเป็น 0 ให้มันโชว์สถานะสินค้าหมดเลย แต่กดเบิกไม่ได้
                 if (item.qty > 0) { 
                     select.innerHTML += `<option value="${index}">[ล็อต: ${item.lot}] ${item.name} (คงเหลือ ${item.qty})</option>`; 
                 } else {
@@ -526,7 +550,7 @@
 
         async function issueItem() {
             const index = document.getElementById('out-item').value;
-            const issueQty = parseInt(document.getElementById('out-qty').value);
+            const issueQty = parseInt(document.getElementById('out-qty').value, 10);
 
             if (index === "" || isNaN(issueQty) || issueQty <= 0) { showNotification("ข้อผิดพลาด", "กรุณาเลือกรายการและระบุจำนวนให้ถูกต้อง", "danger"); return; }
 
@@ -563,11 +587,10 @@
         async function saveEditItem() {
             let newName = document.getElementById('edit-name').value;
             let newLot = document.getElementById('edit-lot').value;
-            let newQty = parseInt(document.getElementById('edit-qty').value);
+            let newQty = parseInt(document.getElementById('edit-qty').value, 10);
             let newPrice = parseFloat(document.getElementById('edit-price').value) || 0;
             let imageStr = document.getElementById('edit-image').value;
 
-            // แก้ให้ใส่จำนวนเป็น 0 ได้
             if(!newName || !newLot || isNaN(newQty) || newQty < 0) { showNotification("ข้อผิดพลาด", "กรุณากรอกข้อมูลให้ครบและถูกต้อง", "danger"); return; }
 
             document.getElementById('status-text').innerText = "กำลังประมวลผลอัปเดตข้อมูล...";
@@ -593,80 +616,203 @@
                     `<img src="${imgUrl}" class="item-image" alt="สินค้า" onerror="this.outerHTML='<div style=\\'font-size:30px; text-align:center; line-height:60px;\\'>📦</div>'">` : 
                     `<div style="font-size:30px; text-align:center; line-height:60px;">📦</div>`;
 
-                // โชว์ป้าย "สินค้าหมด" ถ้ามันเท่ากับ 0 ชิ้น 
                 let qtyHtml = item.qty > 0 
                     ? `<span class="qty-badge">${item.qty.toLocaleString()}</span>`
                     : `<span class="qty-badge out-of-stock">สินค้าหมด</span>`;
 
+                // เพิ่มคลาส search-row ให้ง่ายต่อการค้นหา
                 tbody.innerHTML += `
-                    <tr>
+                    <tr class="search-row">
                         <td style="text-align:center; padding: 10px;">${imgHtml}</td>
-                        <td><strong>${item.name}</strong></td>
-                        <td>${item.lot}</td>
+                        <td class="search-name"><strong>${item.name}</strong></td>
+                        <td class="search-lot">${item.lot}</td>
                         <td class="price-text">${item.price.toLocaleString()}</td>
                         <td style="text-align:center;">${qtyHtml}</td>
                         <td style="text-align:center;"><button class="btn-edit" onclick="openEditItem(${index})">แก้ไข</button></td>
                     </tr>
                 `;
             });
+            // รีเซ็ตการค้นหาถ้ามีพิมพ์ค้างไว้
+            filterStock();
+        }
+
+        // ฟังก์ชันใหม่ที่ 1: ระบบค้นหาสินค้า
+        function filterStock() {
+            let input = document.getElementById('search-stock').value.toLowerCase();
+            let rows = document.querySelectorAll('.search-row');
+            
+            rows.forEach(row => {
+                let name = row.querySelector('.search-name').innerText.toLowerCase();
+                let lot = row.querySelector('.search-lot').innerText.toLowerCase();
+                if (name.includes(input) || lot.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // ฟังก์ชันใหม่ที่ 2: ระบบดาวน์โหลด CSV
+        function exportStockCSV() {
+            if (inventory.length === 0) {
+                showNotification("แจ้งเตือน", "ไม่มีข้อมูลสินค้าให้ดาวน์โหลด", "warning");
+                return;
+            }
+            
+            // ใส่ BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "ชื่อสินค้า,หมายเลขล็อต,จำนวนคงเหลือ,ราคาต่อชิ้น(บาท)\n";
+            
+            inventory.forEach(item => {
+                // ครอบด้วย "" ป้องกันกรณีชื่อสินค้ามีลูกน้ำ (,)
+                csvContent += `"${item.name}","${item.lot}",${item.qty},${item.price}\n`;
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `รายงานสต๊อกสินค้า_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function updateDashboard() {
             let totalStock = 0, totalValue = 0;
-            inventory.forEach(item => { totalStock += item.qty; totalValue += (item.qty * item.price); });
+            inventory.forEach(item => { 
+                totalStock += (Number(item.qty) || 0); 
+                totalValue += ((Number(item.qty) || 0) * (Number(item.price) || 0)); 
+            });
 
             document.getElementById('dash-total').innerText = totalStock.toLocaleString();
             document.getElementById('dash-in').innerText = totalIn.toLocaleString();
             document.getElementById('dash-out').innerText = totalOut.toLocaleString();
             document.getElementById('dash-value').innerText = totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-            let ctx = document.getElementById('stockDoughnutChart').getContext('2d');
-            if(doughnutChart != null) doughnutChart.destroy(); 
+            let chartData = [totalStock, totalIn, totalOut];
+            let chartBg = ['#388E3C', '#66BB6A', '#EF5350'];
+            let chartLabels = ['คงเหลือรวม', 'รับเข้า (วันนี้)', 'เบิกออก (วันนี้)'];
 
-            doughnutChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['คงเหลือรวม', 'รับเข้า (วันนี้)', 'เบิกออก (วันนี้)'],
-                    datasets: [{ data: [totalStock, totalIn, totalOut], backgroundColor: ['#388E3C', '#66BB6A', '#EF5350'], borderWidth: 0, hoverOffset: 4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } }
-            });
+            if(totalStock === 0 && totalIn === 0 && totalOut === 0) {
+                chartData = [1];
+                chartBg = ['#c8e6c9'];
+                chartLabels = ['ยังไม่มีข้อมูลคลังสินค้า'];
+            }
+
+            let ctx = document.getElementById('stockDoughnutChart').getContext('2d');
+            if(doughnutChart != null) {
+                doughnutChart.data.labels = chartLabels;
+                doughnutChart.data.datasets[0].data = chartData;
+                doughnutChart.data.datasets[0].backgroundColor = chartBg;
+                doughnutChart.update(); 
+            } else {
+                doughnutChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{ data: chartData, backgroundColor: chartBg, borderWidth: 0, hoverOffset: 4 }]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, cutout: '75%', 
+                        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } },
+                        animation: { duration: 800, easing: 'easeOutQuart' }
+                    }
+                });
+            }
+
+            let stockLabels = inventory.map(item => item.name);
+            let stockQty = inventory.map(item => item.qty);
+
+            if(stockLabels.length === 0) {
+                stockLabels = ['ยังไม่มีสินค้าในคลัง'];
+                stockQty = [0];
+            }
+
+            let ctxBar = document.getElementById('allStockBarChart').getContext('2d');
+            if(allStockChart != null) {
+                allStockChart.data.labels = stockLabels;
+                allStockChart.data.datasets[0].data = stockQty;
+                allStockChart.update();
+            } else {
+                allStockChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: stockLabels,
+                        datasets: [{
+                            label: 'จำนวนคงเหลือ (ชิ้น)',
+                            data: stockQty,
+                            backgroundColor: '#388E3C',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }, 
+                        scales: { 
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: 'rgba(0,0,0,0.05)' } },
+                            x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } } 
+                        },
+                        animation: { duration: 800, easing: 'easeOutQuart' }
+                    }
+                });
+            }
         }
 
         function updateDailyBarChart() {
             let itemSummary = {};
+            let hasValidData = false;
+
             todayLogs.forEach(log => {
-                if(!itemSummary[log.name]) itemSummary[log.name] = { in: 0, out: 0 };
-                if(log.type === 'IN') itemSummary[log.name].in += log.qty;
-                if(log.type === 'OUT') itemSummary[log.name].out += log.qty;
+                if(log.type === 'IN' || log.type === 'OUT') {
+                    if(!itemSummary[log.name]) itemSummary[log.name] = { in: 0, out: 0 };
+                    if(log.type === 'IN') itemSummary[log.name].in += (Number(log.qty) || 0);
+                    if(log.type === 'OUT') itemSummary[log.name].out += (Number(log.qty) || 0);
+                    hasValidData = true;
+                }
             });
 
             let labels = Object.keys(itemSummary);
             let inData = labels.map(label => itemSummary[label].in);
             let outData = labels.map(label => itemSummary[label].out);
 
-            let ctx = document.getElementById('dailyBarChart').getContext('2d');
-            if(barChart != null) barChart.destroy();
+            if(!hasValidData) {
+                labels = ['ยังไม่มีรายการเคลื่อนไหววันนี้'];
+                inData = [0];
+                outData = [0];
+            }
 
-            barChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels.length > 0 ? labels : ['ยังไม่มีรายการ'],
-                    datasets: [
-                        { label: 'รับเข้า', data: inData, backgroundColor: '#66BB6A', borderRadius: 8 },
-                        { label: 'เบิกออก', data: outData, backgroundColor: '#EF5350', borderRadius: 8 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { usePointStyle: true } } },
-                    scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: 'rgba(0,0,0,0.05)' }, border: { display: false } }, x: { grid: { display: false }, border: { display: false } } }
-                }
-            });
+            let ctx = document.getElementById('dailyBarChart').getContext('2d');
+            
+            if(barChart != null) {
+                barChart.data.labels = labels;
+                barChart.data.datasets[0].data = inData;
+                barChart.data.datasets[1].data = outData;
+                barChart.update();
+            } else {
+                barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'รับเข้า', data: inData, backgroundColor: '#66BB6A', borderRadius: 8 },
+                            { label: 'เบิกออก', data: outData, backgroundColor: '#EF5350', borderRadius: 8 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { labels: { usePointStyle: true } } },
+                        scales: { 
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: 'rgba(0,0,0,0.05)' }, border: { display: false } }, 
+                            x: { grid: { display: false }, border: { display: false } } 
+                        },
+                        animation: { duration: 800, easing: 'easeOutQuart' }
+                    }
+                });
+            }
         }
 
         async function closeDay() {
-            let confirmClose = confirm("การยืนยัน: คุณต้องการปิดยอดประจำวันใช่หรือไม่?\n\nระบบจะทำการบันทึกยอดรวมเข้าประวัติการทำงาน และทำการรีเซ็ตตัวเลขความเคลื่อนไหวประจำวัน\n(หมายเหตุ: จำนวนสินค้าคงเหลือในคลังจะไม่ได้รับผลกระทบ)");
+            let confirmClose = confirm("การยืนยัน: คุณต้องการปิดยอดประจำวันใช่หรือไม่?\n\nระบบจะทำการบันทึกยอดรวมเข้าประวัติการทำงาน\n(หมายเหตุ: จำนวนสินค้าคงเหลือในคลังจะไม่ได้รับผลกระทบ และประวัติเก่าๆ จะยังถูกเก็บไว้ในฐานข้อมูล)");
             if(confirmClose) {
                 document.getElementById('status-text').innerText = "กำลังประมวลผลการปิดยอด กรุณารอสักครู่...";
                 let payload = { action: 'closeday', user: loggedInUser };
