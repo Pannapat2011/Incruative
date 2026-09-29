@@ -7,7 +7,7 @@
     
     <!-- ไลบรารีกราฟ -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- ไลบรารีสำหรับเปิดกล้องสแกนบาร์โค้ด -->
+    <!-- ไลบรารีสำหรับสแกนบาร์โค้ด (ใช้ตัวคอร์หลักเพื่อให้คุมกล้องหลังได้ตรงๆ) -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- ไลบรารีสำหรับสร้าง/วาดรูปบาร์โค้ด EAN-13 -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -132,14 +132,25 @@
         .toast-warning { border-left-color: #FFA726; } .toast-info { border-left-color: #4CAF50; } .toast-danger { border-left-color: #EF5350; }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+        /* สไตล์กล้องและกล่องพรีวิว */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(5px);
         }
         .modal-box { background: #fff; padding: 25px; border-radius: 20px; width: 90%; max-width: 600px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; background: #000; }
+        #reader video { object-fit: cover; }
 
-        /* การจัดวางในหน้าพิมพ์บาร์โค้ด */
+        /* กล่องพรีวิวรูปภาพสินค้าตอนยิงบาร์โค้ด */
+        .preview-card {
+            display: none; background: #fff; padding: 15px; border-radius: 16px; 
+            border: 2px dashed #4CAF50; text-align: center; margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: scaleIn 0.3s ease;
+        }
+        .preview-card img { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 10px; border: 1px solid #eee; }
+        .preview-card h3 { margin: 0 0 5px 0; font-size: 18px; color: #1E4620; }
+        .preview-card p { margin: 0; color: #5c7a61; font-weight: 500; }
+
         .print-layout { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; margin-bottom: 20px; gap: 15px; }
         .print-item { background: #f8f9fa; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; }
 
@@ -167,13 +178,14 @@
 
     <div id="toast-container"></div>
 
-    <!-- Modal เปิดกล้องสแกน -->
+    <!-- Modal เปิดกล้องสแกน (กล้องหลัง) -->
     <div id="scanner-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="margin-top: 0;">📷 สแกนบาร์โค้ดด้วยกล้อง</h3>
-            <p style="font-size: 14px; color: #666;">นำบาร์โค้ดมาส่องที่หน้ากล้อง ระบบจะอ่านอัตโนมัติ</p>
+            <h3 style="margin-top: 0;">📷 สแกนบาร์โค้ด (กล้องหลัง)</h3>
+            <p style="font-size: 14px; color: #666;">นำบาร์โค้ดมาส่องที่หน้ากล้อง ระบบจะอ่านและจับภาพอัตโนมัติ</p>
+            <!-- กล่อง reader สำหรับ Html5Qrcode -->
             <div id="reader"></div>
-            <button class="btn-solid-red no-print" style="width: 100%;" onclick="closeScanner()">ยกเลิก / ปิดกล้อง</button>
+            <button class="btn-solid-red no-print" style="width: 100%; margin-top: 10px;" onclick="closeScanner()">ยกเลิก / ปิดกล้อง</button>
         </div>
     </div>
 
@@ -186,13 +198,13 @@
             <div class="print-layout">
                 <!-- EAN-13 Barcode -->
                 <div class="print-item">
-                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;">สำหรับเครื่องสแกนสต๊อก</p>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;">สำหรับปืนยิงสต๊อก</p>
                     <svg id="barcode-canvas"></svg>
                 </div>
                 
-                <!-- QR Code สำหรับมือถือ -->
+                <!-- QR Code สำหรับทะลุมาเว็บมึง -->
                 <div class="print-item">
-                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;">สแกนเพื่อเข้าเว็บ</p>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;">สแกนแอปทั่วไปเพื่อเข้าเว็บ</p>
                     <canvas id="qr-canvas"></canvas>
                 </div>
             </div>
@@ -207,7 +219,7 @@
     <div class="company-header">
         <img id="main-company-logo" src="https://drive.google.com/uc?export=view&id=1MIm9cUkWG6PfqoSbrq5DT1miQKlLStmx" alt="โลโก้องค์กร">
         <h1>บริษัท อินครูเอทีฟ อินโนเวชั่น จำกัด</h1>
-        <p>ระบบบริหารจัดการคลังสินค้าแบบรวมศูนย์ (EAN-13 Ready)</p>
+        <p>ระบบบริหารจัดการคลังสินค้าแบบรวมศูนย์ (Smart Scan Ready)</p>
     </div>
 
     <!-- 🔒 เข้าสู่ระบบ -->
@@ -269,11 +281,19 @@
         <div id="receive" class="card">
             <h2>บันทึกรับสินค้าเข้าคลัง</h2>
             
-            <label>บาร์โค้ด EAN-13 (พิมพ์ / สแกน / สร้างอัตโนมัติ)</label>
+            <label>บาร์โค้ด EAN-13 (พิมพ์ / สแกนกล้อง / สร้างอัตโนมัติ)</label>
             <div class="barcode-group">
-                <input type="text" id="in-barcode" placeholder="ยิงบาร์โค้ด 13 หลัก..." onkeypress="checkEnterKey(event, 'in-qty')">
-                <button class="btn-scan" onclick="startScanner('in-barcode')">📷 สแกน</button>
+                <!-- โดนยิงเสร็จจะเด้งไปค้นหารูปทันที -->
+                <input type="text" id="in-barcode" placeholder="ยิงบาร์โค้ด..." onkeypress="findItemForReceive(event)">
+                <button class="btn-scan" onclick="startScanner('in-barcode')">📷 สแกนกล้อง</button>
                 <button class="btn-generate" onclick="generateEAN13('in-barcode')">✨ สร้างบาร์โค้ด</button>
+            </div>
+
+            <!-- กล่องพรีวิวรูปสินค้า (ฝั่งรับของ) -->
+            <div id="in-preview-container" class="preview-card">
+                <img id="in-preview-img" src="" alt="Product">
+                <h3 id="in-preview-name"></h3>
+                <p id="in-preview-stock"></p>
             </div>
 
             <div class="form-grid">
@@ -293,10 +313,17 @@
         <div id="issue" class="card">
             <h2>บันทึกเบิกสินค้าออก</h2>
             
-            <label>ค้นหาสินค้าด้วยบาร์โค้ด (ยิงแล้วระบบจะเลือกรายการให้อัตโนมัติ)</label>
+            <label>ค้นหาสินค้าด้วยบาร์โค้ด (ยิงแล้วโชว์รูปทันที)</label>
             <div class="barcode-group">
                 <input type="text" id="out-barcode" placeholder="ยิงบาร์โค้ดที่นี่เพื่อค้นหา..." onkeypress="findItemByBarcode(event)">
                 <button class="btn-scan" onclick="startScanner('out-barcode')">📷 สแกนกล้อง</button>
+            </div>
+
+            <!-- กล่องพรีวิวรูปสินค้า (ฝั่งเบิกของ) -->
+            <div id="out-preview-container" class="preview-card">
+                <img id="out-preview-img" src="" alt="Product">
+                <h3 id="out-preview-name"></h3>
+                <p id="out-preview-stock"></p>
             </div>
 
             <label>หรือ เลือกรายการสินค้าแบบแมนนวล</label>
@@ -350,7 +377,7 @@
             <label>บาร์โค้ด EAN-13</label>
             <div class="barcode-group">
                 <input type="text" id="edit-barcode" placeholder="ระบุบาร์โค้ด">
-                <button class="btn-scan" onclick="startScanner('edit-barcode')">📷 สแกน</button>
+                <button class="btn-scan" onclick="startScanner('edit-barcode')">📷 สแกนกล้อง</button>
                 <button class="btn-generate" onclick="generateEAN13('edit-barcode')">✨ สร้างบาร์โค้ด</button>
             </div>
             <div class="form-grid">
@@ -400,11 +427,13 @@
         let syncInterval; 
         let isSyncing = false; 
         
-        let html5QrcodeScanner = null;
+        // ตัวแปรเก็บ Instance ของกล้อง
+        let html5QrCode = null;
         let currentScanInputId = "";
         
         // กำหนดลิงก์เว็บไซต์ของมึง
         const BASE_WEBSITE_URL = 'https://pannapat2011.github.io/Incruative/';
+        let externalBarcodeHandled = false; // เอาไว้เช็คว่าดึง url param ไปหรือยัง
 
         Chart.defaults.font.family = "'Prompt', sans-serif";
         Chart.defaults.color = '#5c7a61';
@@ -437,22 +466,16 @@
         // 🛠️ ระบบสร้างและปริ้นบาร์โค้ด EAN-13 + QR Code
         // ==========================================
         
-        // ฟังก์ชันสุ่มและคำนวณบาร์โค้ด EAN-13 ที่ถูกต้อง
         function generateEAN13(inputId) {
-            let code = "885"; // รหัสประเทศ (ไทย)
-            for(let i=0; i<9; i++) {
-                code += Math.floor(Math.random() * 10).toString(); // สุ่มอีก 9 หลัก
-            }
-            // คำนวณ Check Digit (หลักที่ 13)
+            let code = "885"; // ไทย
+            for(let i=0; i<9; i++) { code += Math.floor(Math.random() * 10).toString(); }
             let sum = 0;
-            for(let i=0; i<12; i++) {
-                sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3);
-            }
+            for(let i=0; i<12; i++) { sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3); }
             let checkDigit = (10 - (sum % 10)) % 10;
             let finalEAN = code + checkDigit;
             
             document.getElementById(inputId).value = finalEAN;
-            showNotification('สร้างรหัสสำเร็จ', `สร้างบาร์โค้ด EAN-13: ${finalEAN} แล้ว`, 'info');
+            showNotification('สร้างรหัสสำเร็จ', `สร้างบาร์โค้ด EAN-13: ${finalEAN}`, 'info');
         }
 
         function openBarcodePreview(barcodeText, itemName) {
@@ -463,79 +486,135 @@
             document.getElementById('barcode-item-name').innerText = itemName;
             document.getElementById('barcode-modal').style.display = 'flex';
             
-            // 1. วาด EAN-13 Barcode
             try {
-                JsBarcode("#barcode-canvas", barcodeText, {
-                    format: "EAN13", // บังคับให้เป็นรูปแบบ EAN-13
-                    lineColor: "#000",
-                    width: 2.5,
-                    height: 80,
-                    displayValue: true,
-                    fontSize: 20,
-                    fontOptions: "bold",
-                    margin: 10
-                });
+                JsBarcode("#barcode-canvas", barcodeText, { format: "EAN13", lineColor: "#000", width: 2.5, height: 80, displayValue: true, fontSize: 20, fontOptions: "bold", margin: 10 });
             } catch(e) {
-                // ถ้าบาร์โค้ดเก่ามึงไม่ใช่เลข 13 หลัก มันจะ error เลยต้อง fallback ไป CODE128
                 JsBarcode("#barcode-canvas", barcodeText, { format: "CODE128", width: 2, height: 60, displayValue: true });
             }
 
-            // 2. วาด QR Code ไปที่เว็บเพจของมึง
+            // ฝังบาร์โค้ดแนบไปกับลิงก์เว็บมึง พอมือถือสแกนปุ๊บทะลุมาหน้าเบิกเลย!
             let qrCanvas = document.getElementById("qr-canvas");
-            let qrUrl = BASE_WEBSITE_URL; // มึงจะต่อท้ายพารามิเตอร์แบบ ?item=barcodeText ตรงนี้ในอนาคตก็ได้
-            new QRious({
-                element: qrCanvas,
-                value: qrUrl,
-                size: 150,
-                background: 'white',
-                foreground: 'black'
-            });
+            let qrUrl = BASE_WEBSITE_URL + "?barcode=" + barcodeText;
+            new QRious({ element: qrCanvas, value: qrUrl, size: 150, background: 'white', foreground: 'black' });
         }
 
         function closeBarcodePreview() { document.getElementById('barcode-modal').style.display = 'none'; }
 
         // ==========================================
-        // 📷 ระบบสแกนบาร์โค้ด
+        // 📷 ระบบเปิดกล้อง (บังคับกล้องหลังทันที)
         // ==========================================
         
-        function checkEnterKey(event, nextInputId) {
-            if (event.key === "Enter") { event.preventDefault(); document.getElementById(nextInputId).focus(); }
+        function startScanner(inputId) {
+            currentScanInputId = inputId; 
+            document.getElementById('scanner-modal').style.display = 'flex';
+            
+            if(!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            // บังคับใช้กล้องหลัง (environment)
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText, decodedResult) => {
+                    // เมื่อสแกนติด
+                    document.getElementById(currentScanInputId).value = decodedText;
+                    closeScanner();
+                    showNotification('สแกนสำเร็จ', `รหัส: ${decodedText}`, 'info');
+                    
+                    // เรียกฟังก์ชันค้นหาและโชว์รูปภาพ
+                    if(currentScanInputId === 'out-barcode') findItemByBarcode("camera");
+                    if(currentScanInputId === 'in-barcode') findItemForReceive("camera");
+                },
+                (errorMessage) => { /* ซ่อน error ขณะกำลังหากล้อง */ }
+            ).catch((err) => {
+                showNotification("เปิดกล้องไม่ได้", "อุปกรณ์นี้อาจจะไม่มีกล้องหลัง หรือคุณไม่ได้อนุญาต", "danger");
+            });
         }
 
+        function closeScanner() {
+            document.getElementById('scanner-modal').style.display = 'none';
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then((ignore) => {
+                    html5QrCode.clear();
+                }).catch((err) => { console.log(err); });
+            }
+        }
+
+        // ==========================================
+        // 🖼️ ระบบค้นหาและโชว์รูปภาพพอยิงบาร์โค้ด
+        // ==========================================
+
+        // ฝั่งเบิกของ (Issue)
         function findItemByBarcode(event) {
-            if (event.key === "Enter" || event === "camera") {
+            if (event.key === "Enter" || event === "camera" || event === "url") {
                 if(event.key === "Enter") event.preventDefault();
                 let barcodeVal = document.getElementById('out-barcode').value.trim().toLowerCase();
                 if(!barcodeVal) return;
                 
                 let foundIndex = inventory.findIndex(item => item.barcode && item.barcode.toLowerCase() === barcodeVal);
+                let previewContainer = document.getElementById('out-preview-container');
+                
                 if(foundIndex !== -1) {
-                    if (inventory[foundIndex].qty > 0) {
-                        document.getElementById('out-item').value = foundIndex;
-                        showNotification('ค้นพบสินค้า', `ระบบเลือก ${inventory[foundIndex].name} ให้แล้ว`, 'info');
+                    let item = inventory[foundIndex];
+                    document.getElementById('out-item').value = foundIndex;
+                    
+                    // อัปเดตกล่องพรีวิวรูป
+                    document.getElementById('out-preview-img').src = formatImageUrl(item.image) || 'https://via.placeholder.com/150?text=No+Image';
+                    document.getElementById('out-preview-name').innerText = item.name;
+                    document.getElementById('out-preview-stock').innerText = `คงเหลือ: ${item.qty} ชิ้น`;
+                    previewContainer.style.display = 'block';
+                    
+                    if (item.qty > 0) {
+                        showNotification('ค้นพบสินค้า', `เตรียมเบิก: ${item.name}`, 'info');
                         document.getElementById('out-qty').focus(); 
-                    } else { showNotification('สินค้าหมด', `บาร์โค้ดตรงกับ ${inventory[foundIndex].name} แต่ของในคลังหมด!`, 'danger'); }
-                } else { showNotification('ไม่พบข้อมูล', 'ไม่พบรหัสบาร์โค้ดนี้ในฐานข้อมูล', 'warning'); }
+                    } else { 
+                        showNotification('สินค้าหมด', `บาร์โค้ดนี้ตรงกับ ${item.name} แต่ของในคลังหมด!`, 'danger'); 
+                    }
+                } else { 
+                    previewContainer.style.display = 'none';
+                    showNotification('ไม่พบข้อมูล', 'ไม่พบรหัสบาร์โค้ดนี้ในฐานข้อมูล', 'warning'); 
+                }
             }
         }
 
-        function startScanner(inputId) {
-            currentScanInputId = inputId; document.getElementById('scanner-modal').style.display = 'flex';
-            if(!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false); }
-            html5QrcodeScanner.render((decodedText, decodedResult) => {
-                document.getElementById(currentScanInputId).value = decodedText; closeScanner();
-                showNotification('สแกนสำเร็จ', `รหัส: ${decodedText}`, 'info');
-                if(currentScanInputId === 'out-barcode') findItemByBarcode("camera");
-            }, (error) => {});
-        }
-
-        function closeScanner() {
-            document.getElementById('scanner-modal').style.display = 'none';
-            if(html5QrcodeScanner) html5QrcodeScanner.clear();
+        // ฝั่งรับของ (Receive) ดึงข้อมูลเดิมมาให้ถ้าเคยมีของชิ้นนี้อยู่แล้ว
+        function findItemForReceive(event) {
+            if (event.key === "Enter" || event === "camera") {
+                if(event.key === "Enter") event.preventDefault();
+                let barcodeVal = document.getElementById('in-barcode').value.trim().toLowerCase();
+                if(!barcodeVal) { document.getElementById('in-qty').focus(); return; }
+                
+                let foundIndex = inventory.findIndex(item => item.barcode && item.barcode.toLowerCase() === barcodeVal);
+                let previewContainer = document.getElementById('in-preview-container');
+                
+                if(foundIndex !== -1) {
+                    let item = inventory[foundIndex];
+                    // เติมข้อมูลลงช่องให้อัตโนมัติเลย
+                    document.getElementById('in-name').value = item.name;
+                    document.getElementById('in-lot').value = item.lot;
+                    document.getElementById('in-price').value = item.price;
+                    document.getElementById('in-image').value = item.image || '';
+                    
+                    // โชว์กล่องพรีวิว
+                    document.getElementById('in-preview-img').src = formatImageUrl(item.image) || 'https://via.placeholder.com/150?text=No+Image';
+                    document.getElementById('in-preview-name').innerText = item.name;
+                    document.getElementById('in-preview-stock').innerText = `มีของอยู่แล้ว: ${item.qty} ชิ้น`;
+                    previewContainer.style.display = 'block';
+                    
+                    showNotification('พบสินค้าเดิม', `ดึงข้อมูลให้แล้ว ใส่แค่จำนวนเข้าใหม่ได้เลย`, 'info');
+                    document.getElementById('in-qty').focus();
+                } else {
+                    previewContainer.style.display = 'none';
+                    // ไม่เจอแปลว่าเป็นของใหม่ ล้างช่องชื่อให้เค้ากรอก
+                    document.getElementById('in-name').value = '';
+                    document.getElementById('in-qty').focus();
+                }
+            }
         }
 
         // ==========================================
-        // ระบบหลัก (ล็อกอิน โหลดข้อมูล รับ เบิก)
+        // ระบบหลัก (ล็อกอิน โหลดข้อมูล กราฟ)
         // ==========================================
 
         async function login() {
@@ -568,6 +647,18 @@
                 let response = await fetch(SCRIPT_URL + "?action=get"); let data = await response.json();
                 inventory = data.stock; todayLogs = data.logs || []; totalIn = data.in; totalOut = data.out;
                 updateDashboard(); updateStockTable(); updateIssueDropdown(); document.getElementById('status-text').innerText = "";
+                
+                // ถ้ายิง QR มาจากแอปนอกเว็บ (URL มีพารามิเตอร์) ให้จัดการตรงนี้หลังโหลดข้อมูลคลังเสร็จ
+                if (!externalBarcodeHandled) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const barcodeFromUrl = urlParams.get('barcode');
+                    if (barcodeFromUrl) {
+                        externalBarcodeHandled = true; // ทำครั้งเดียว
+                        showPage('issue', document.querySelectorAll('.btn-menu')[3]); // เด้งไปหน้าเบิกสินค้า
+                        document.getElementById('out-barcode').value = barcodeFromUrl;
+                        findItemByBarcode("url"); // ค้นหาและโชว์รูปเลย
+                    }
+                }
             } catch (error) { document.getElementById('status-text').innerText = "เชื่อมต่อล้มเหลว"; document.getElementById('status-text').style.color = "#E53935"; }
         }
 
@@ -589,9 +680,13 @@
             if (btnElement) { document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active'); }
             if (pageId === 'issue') updateIssueDropdown();
             if (pageId === 'stock') { document.getElementById('search-stock').value = ""; filterStock(); }
-            if (pageId === 'dashboard') updateDashboard(); // ให้รีเฟรชกราฟทุกครั้งที่เข้าหน้าแรก
+            if (pageId === 'dashboard') updateDashboard(); 
             
             closeScanner(); closeBarcodePreview();
+            
+            // ล้างหน้าพรีวิวให้สะอาดเวลาสลับหน้า
+            document.getElementById('in-preview-container').style.display = 'none';
+            document.getElementById('out-preview-container').style.display = 'none';
         }
 
         function formatImageUrl(url) {
@@ -618,6 +713,7 @@
                     showNotification('บันทึกสำเร็จ', `เพิ่มรับสินค้าเข้าคลังเรียบร้อย`, 'info');
                     document.getElementById('in-barcode').value = ''; document.getElementById('in-name').value = '';
                     document.getElementById('in-lot').value = ''; document.getElementById('in-qty').value = '';
+                    document.getElementById('in-preview-container').style.display = 'none';
                     fetchStockData(); 
                 }
             } catch (error) { showNotification("ข้อผิดพลาด", "บันทึกไม่ได้", "danger"); }
@@ -645,7 +741,9 @@
                 let response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }); let result = await response.json();
                 if (result.status === 'success') {
                     showNotification('เบิกสำเร็จ', `เบิก ${item.name} จำนวน ${issueQty} ชิ้นเรียบร้อย`, 'info');
-                    document.getElementById('out-barcode').value = ''; document.getElementById('out-qty').value = ''; fetchStockData(); 
+                    document.getElementById('out-barcode').value = ''; document.getElementById('out-qty').value = ''; 
+                    document.getElementById('out-preview-container').style.display = 'none';
+                    fetchStockData(); 
                 } else { showNotification("ข้อผิดพลาด", "สินค้าไม่พอ", "danger"); }
             } catch (error) { showNotification("ข้อผิดพลาด", "บันทึกไม่ได้", "danger"); }
         }
@@ -719,9 +817,9 @@
                 else { row.style.display = "none"; }
             });
         }
-        
+
         // ==========================================
-        // 📊 คืนชีพกราฟที่หายไป กลับมาครบถ้วน!
+        // 📊 คืนชีพกราฟ กลับมาครบถ้วน!
         // ==========================================
 
         function exportStockCSV() {
